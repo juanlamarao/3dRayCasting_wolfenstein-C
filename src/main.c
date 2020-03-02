@@ -6,7 +6,7 @@
 /*   By: juanlamarao <juolivei@42.fr>               +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/03/01 16:46:46 by juanlamar         #+#    #+#             */
-/*   Updated: 2020/03/02 14:18:10 by juanlamar        ###   ########.fr       */
+/*   Updated: 2020/03/02 16:13:23 by juanlamar        ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,7 @@
 #include "constants.h"
 #include <SDL2/SDL.h>
 #include <math.h>
+#include <limits.h>
 
 const int		map[MAP_NUM_ROWS][MAP_NUM_COLS] = {
 	{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
@@ -43,7 +44,21 @@ typedef struct	s_player
 	float	walk_speed;
 	float	turn_speed;
 }				t_player;
+typedef struct	s_ray
+{
+	float	ray_angle;
+	float	wall_hit_x;
+	float	wall_hit_y;
+	float	distance;
+	int		was_hit_vert;
+	int		is_ray_facing_down;
+	int		is_ray_facing_right;
+	int		wall_hit_content;
+}				t_ray;
 
+// casting dos raios
+t_ray			rays[NUM_RAYS];
+// jogador
 t_player		player;
 // janela SDL
 SDL_Window*		window = NULL;
@@ -93,6 +108,191 @@ void	destroy_window()
 	SDL_Quit();
 }
 
+int		map_has_wall_at(float x, float y)
+{
+	int	map_grid_index_x;
+	int	map_grid_index_y;
+
+	if (x < 0 || y < 0 || x > WINDOW_WIDTH || y > WINDOW_HEIGHT)
+		return 1;
+	map_grid_index_x = floor(x / TILE_SIZE);
+	map_grid_index_y = floor(y / TILE_SIZE);
+	return (map[map_grid_index_y][map_grid_index_x] != 0);
+}
+
+int		find_horz_hit(float *wall_hit_x, float *wall_hit_y, int is_ray_facing_down, int is_ray_facing_right, float ray_angle, int *wall_content)
+{
+	float	x_intercept;
+	float	y_intercept;
+	float	x_step;
+	float	y_step;
+	float	next_touch_x;
+	float	next_touch_y;
+	float	x_to_check;
+	float	y_to_check;
+	int		found_hit;
+
+	found_hit = 0;
+	//
+	y_intercept = floor(player.y / TILE_SIZE) * TILE_SIZE;
+	y_intercept += is_ray_facing_down ? TILE_SIZE : 0;
+	//
+	x_intercept = player.x + (y_intercept - player.y) / tan(ray_angle);
+	//
+	y_step = TILE_SIZE;
+	y_step *= !is_ray_facing_down ? -1: 1;
+	//
+	x_step = TILE_SIZE / tan(ray_angle);
+	x_step *= (!is_ray_facing_right && x_step > 0) ? -1 : 1;
+	x_step *= (is_ray_facing_right && x_step < 0) ? -1 : 1;
+	//
+	next_touch_x = x_intercept;
+	next_touch_y = y_intercept;
+	//
+	while (next_touch_x >= 0 && next_touch_x <= WINDOW_WIDTH && next_touch_y >= 0 && next_touch_y <= WINDOW_HEIGHT)
+	{
+		x_to_check = next_touch_x;
+		y_to_check = next_touch_y + (!is_ray_facing_down ? -1 : 0);
+
+		if (map_has_wall_at(x_to_check, y_to_check))
+		{
+			found_hit = 1;
+			*wall_hit_x = next_touch_x;
+			*wall_hit_y = next_touch_y;
+			*wall_content = map[(int)floor(y_to_check / TILE_SIZE)][(int)floor(x_to_check / TILE_SIZE)];
+			break ;
+		}
+		else
+		{
+			next_touch_x += x_step;
+			next_touch_y += y_step;
+		}
+	}
+	return (found_hit);
+}
+
+int		find_vert_hit(float *wall_hit_x, float *wall_hit_y, int is_ray_facing_down, int is_ray_facing_right, float ray_angle, int *wall_content)
+{
+	float	x_intercept;
+	float	y_intercept;
+	float	x_step;
+	float	y_step;
+	float	next_touch_x;
+	float	next_touch_y;
+	float	x_to_check;
+	float	y_to_check;
+	int		found_hit;
+
+	found_hit = 0;
+	(void)wall_content;
+	x_intercept = floor(player.x / TILE_SIZE) * TILE_SIZE;
+	x_intercept += is_ray_facing_right ? TILE_SIZE : 0;
+	y_intercept = player.y + (x_intercept - player.x) * tan(ray_angle);
+	x_step = TILE_SIZE;
+	x_step *= !is_ray_facing_right ? -1: 1;
+	y_step = TILE_SIZE * tan(ray_angle);
+	y_step *= (!is_ray_facing_down && y_step > 0) ? -1 : 1;
+	y_step *= (is_ray_facing_down && y_step < 0) ? -1 : 1;
+	next_touch_x = x_intercept;
+	next_touch_y = y_intercept;
+	while (next_touch_x >= 0 && next_touch_x <= WINDOW_WIDTH && next_touch_y >= 0 && next_touch_y <= WINDOW_HEIGHT)
+	{
+		x_to_check = next_touch_x + (!is_ray_facing_right ? -1 : 0);
+		y_to_check = next_touch_y;
+
+		if (map_has_wall_at(x_to_check, y_to_check))
+		{
+			found_hit = 1;
+			*wall_hit_x = next_touch_x;
+			*wall_hit_y = next_touch_y;
+			*wall_content = map[(int)floor(y_to_check / TILE_SIZE)][(int)floor(x_to_check / TILE_SIZE)];
+			break ;
+		}
+		else
+		{
+			next_touch_x += x_step;
+			next_touch_y += y_step;
+		}
+	}
+	return (found_hit);
+}
+
+float	normalize_angle(float angle)
+{
+	angle = remainder(angle, TWO_PI);
+	if (angle < 0)
+		angle = TWO_PI + angle;
+	return (angle);
+}
+
+float	distance_beteewn_points(float x1, float y1, float x2, float y2)
+{
+	return (sqrt(((x2 - x1) * (x2 - x1)) + ((y2 - y1) * (y2 - y1))));
+}
+
+void	cast_ray(float ray_angle, int strip_id)
+{
+	int		is_ray_facing_down;
+	int		is_ray_facing_right;
+	int		found_horz_hit;
+	int		found_vert_hit;
+	int		horz_wall_content;
+	int		vert_wall_content;
+	float	horz_wall_hit_x;
+	float	horz_wall_hit_y;
+	float	vert_wall_hit_x;
+	float	vert_wall_hit_y;
+	float	horz_distance;
+	float	vert_distance;
+
+	ray_angle = normalize_angle(ray_angle);
+	is_ray_facing_down = ray_angle > 0 && ray_angle < PI;
+	is_ray_facing_right = ray_angle < 0.5 * PI || ray_angle > 1.5 * PI;
+
+	found_horz_hit = find_horz_hit(&horz_wall_hit_x, &horz_wall_hit_y, is_ray_facing_down, is_ray_facing_right, ray_angle, &horz_wall_content);
+	found_vert_hit = find_vert_hit(&vert_wall_hit_x, &vert_wall_hit_y, is_ray_facing_down, is_ray_facing_right, ray_angle, &vert_wall_content);
+	horz_distance = found_horz_hit
+		? distance_beteewn_points(player.x, player.y, horz_wall_hit_x, horz_wall_hit_y)
+		: INT_MAX;
+	vert_distance = found_vert_hit
+		? distance_beteewn_points(player.x, player.y, vert_wall_hit_x, vert_wall_hit_y)
+		: INT_MAX;
+	if (vert_distance < horz_distance)
+	{
+		rays[strip_id].distance = vert_distance;
+		rays[strip_id].wall_hit_x = vert_wall_hit_x;
+		rays[strip_id].wall_hit_y = vert_wall_hit_y;
+		rays[strip_id].wall_hit_content = vert_wall_content;
+		rays[strip_id].was_hit_vert = 1;
+	}
+	else
+	{
+		rays[strip_id].distance = horz_distance;
+		rays[strip_id].wall_hit_x = horz_wall_hit_x;
+		rays[strip_id].wall_hit_y = horz_wall_hit_y;
+		rays[strip_id].wall_hit_content = horz_wall_content;
+		rays[strip_id].was_hit_vert = 0;
+	}
+	rays[strip_id].ray_angle = ray_angle;
+	rays[strip_id].is_ray_facing_down = is_ray_facing_down;
+	rays[strip_id].is_ray_facing_right = is_ray_facing_right;
+}
+
+void	cast_all_rays()
+{
+	int		strip_id;
+	float	ray_angle;
+	
+	strip_id = 0;
+	ray_angle = player.rotation_angle - (FOV_ANGLE / 2);
+	while (strip_id < NUM_RAYS)
+	{
+		cast_ray(ray_angle, strip_id);
+		ray_angle += FOV_ANGLE / NUM_RAYS;
+		strip_id++;
+	}
+}
+
 void	render_map()
 {
 	int	i;
@@ -121,6 +321,25 @@ void	render_map()
 			SDL_RenderFillRect(renderer, &map_tile_rect);
 			j++;
 		}
+		i++;
+	}
+}
+
+void	render_rays()
+{
+	int	i;
+
+	i = 0;
+	SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+	while (i < NUM_RAYS)
+	{
+		SDL_RenderDrawLine(
+			renderer,
+			MINIMAP_SCALE_FACTOR * player.x,
+			MINIMAP_SCALE_FACTOR * player.y,
+			MINIMAP_SCALE_FACTOR * rays[i].wall_hit_x,
+			MINIMAP_SCALE_FACTOR * rays[i].wall_hit_y
+		);
 		i++;
 	}
 }
@@ -178,18 +397,6 @@ void	setup()
 	player.turn_speed = 45 * (PI / 180);
 }
 
-int		map_has_wall_at(float x, float y)
-{
-	int	map_grid_index_x;
-	int	map_grid_index_y;
-
-	if (x < 0 || y < 0 || x > WINDOW_WIDTH || y > WINDOW_HEIGHT)
-		return 1;
-	map_grid_index_x = floor(x / TILE_SIZE);
-	map_grid_index_y = floor(y / TILE_SIZE);
-	return (map[map_grid_index_y][map_grid_index_x] != 0);
-}
-
 void	move_player(float delta_time)
 {
 	float	move_step;
@@ -241,9 +448,7 @@ void	update()
 	ticks_last_frame = SDL_GetTicks();
 
 	move_player(delta_time);
-	// TODO: lembrar de multiplicar qualquer update por delta_time
-	//player_x += 50 * delta_time;
-	//player_y += 50 * delta_time;
+	cast_all_rays();
 }
 
 void	render()
@@ -253,7 +458,7 @@ void	render()
 
 	// renderizar objetos do jogo
 	render_map();
-	//render_rays();
+	render_rays();
 	render_player();
 
 	SDL_RenderPresent(renderer);
