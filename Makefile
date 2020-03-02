@@ -6,7 +6,7 @@
 #    By: juanlamarao <juolivei@42.fr>               +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/03/01 16:54:28 by juanlamar         #+#    #+#              #
-#    Updated: 2020/03/02 13:50:30 by juanlamar        ###   ########.fr        #
+#    Updated: 2020/03/02 18:01:42 by juanlamar        ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -24,7 +24,7 @@ CC = gcc
 CC_FLAGS = -Wall -Werror -Wextra
 
 all: $(C_FILES)
-	$(CC) $(CC_FLAGS) $(C_FILES) $(GRAPH_LIB) $(MATH_LIB) -o $(NAME);
+	$(CC) $(CC_FLAGS) $(C_FILES) $(GRAPH_LIB) $(MATH_LIB) -o $(NAME)
 
 run:
 	./$(NAME)

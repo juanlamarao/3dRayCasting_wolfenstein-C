@@ -6,7 +6,7 @@
 /*   By: juanlamarao <juolivei@42.fr>               +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/03/01 16:46:46 by juanlamar         #+#    #+#             */
-/*   Updated: 2020/03/02 16:13:23 by juanlamar        ###   ########.fr       */
+/*   Updated: 2020/03/02 20:10:15 by juanlamar        ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -293,6 +293,53 @@ void	cast_all_rays()
 	}
 }
 
+void	render_3d_projected_walls()
+{
+	int	strip_id;
+
+	strip_id = 0;
+	while (strip_id < NUM_RAYS)
+	{
+		int		alpha;
+		int		color;
+/*		int		y;
+		int		wall_top_pixel;
+		int		wall_bottom_pixel;*/
+		int		wall_strip_width = 1;
+		t_ray	ray;
+		float	dist_proj_plane;
+		float	correct_wall_dist;
+		float	wall_strip_height;
+	   
+		ray = rays[strip_id];
+		correct_wall_dist = ray.distance * cos(player.rotation_angle - ray.ray_angle);
+		alpha = 255 / floor(correct_wall_dist);
+		color = 255;
+		dist_proj_plane = (WINDOW_WIDTH / 2) * tan(FOV_ANGLE / 2);
+		wall_strip_height = (TILE_SIZE / correct_wall_dist) * dist_proj_plane;
+
+/*		//pixel superior
+		wall_top_pixel = (WINDOW_HEIGHT / 2) - (wall_strip_height / 2);
+		wall_top_pixel = wall_top_pixel < 0 ? 0 : wall_top_pixel;
+		//pixel inferior
+		wall_bottom_pixel = (WINDOW_HEIGHT / 2) + (wall_strip_height / 2);
+		wall_bottom_pixel = wall_top_pixel > WINDOW_HEIGHT ? WINDOW_HEIGHT : wall_top_pixel;
+		y = wall_top_pixel
+		while (y < 
+*/
+		//render
+		SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+		SDL_Rect map_tile_rect = {
+			strip_id * wall_strip_width,
+			(WINDOW_HEIGHT / 2) - (wall_strip_height / 2),
+			wall_strip_width,
+			wall_strip_height,
+		};
+		SDL_RenderFillRect(renderer, &map_tile_rect);
+		strip_id++;
+	}
+}
+
 void	render_map()
 {
 	int	i;
@@ -455,6 +502,8 @@ void	render()
 {
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 	SDL_RenderClear(renderer);
+	
+	render_3d_projected_walls();
 
 	// renderizar objetos do jogo
 	render_map();
