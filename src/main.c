@@ -6,7 +6,7 @@
 /*   By: juanlamarao <juolivei@42.fr>               +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/03/01 16:46:46 by juanlamar         #+#    #+#             */
-/*   Updated: 2020/03/01 18:06:51 by juanlamar        ###   ########.fr       */
+/*   Updated: 2020/03/02 11:15:48 by juanlamar        ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,9 +14,13 @@
 #include "constants.h"
 #include <SDL2/SDL.h>
 
+// janela SDL
 SDL_Window*		window = NULL;
+// renderização SDL
 SDL_Renderer*	renderer = NULL;
+// flag de verificação de status do game
 int				is_game_running = 0;
+// posição x / y do jogador
 int				player_x, player_y;
 
 int		initialize_window()
