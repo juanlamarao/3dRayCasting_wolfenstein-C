@@ -6,13 +6,14 @@
 /*   By: juanlamarao <juolivei@42.fr>               +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2020/03/01 16:46:46 by juanlamar         #+#    #+#             */
-/*   Updated: 2020/03/02 20:10:15 by juanlamar        ###   ########.fr       */
+/*   Updated: 2020/03/03 12:39:36 by juolivei         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include <stdio.h>
 #include "constants.h"
-#include <SDL2/SDL.h>
+//#include <SDL2/SDL.h>
+#include "/Users/juolivei/.brew/Cellar/sdl2/2.0.10/include/SDL2/SDL.h"
 #include <math.h>
 #include <limits.h>
 
@@ -302,6 +303,9 @@ void	render_3d_projected_walls()
 	{
 		int		alpha;
 		int		color;
+		int		color1;
+		int		color2;
+		int		color3;
 /*		int		y;
 		int		wall_top_pixel;
 		int		wall_bottom_pixel;*/
@@ -313,22 +317,48 @@ void	render_3d_projected_walls()
 	   
 		ray = rays[strip_id];
 		correct_wall_dist = ray.distance * cos(player.rotation_angle - ray.ray_angle);
-		alpha = 255 / floor(correct_wall_dist);
+		alpha = 50000 / floor(correct_wall_dist);
+		alpha = alpha > 255 ? 255 : alpha;
+		alpha = alpha < 0 ? 0 : alpha;
+		alpha += ray.was_hit_vert ? -50 : 0;
+		alpha = alpha > 255 ? 255 : alpha;
+		alpha = alpha < 0 ? 0 : alpha;
+		/* single color */
 		color = 255;
+		color1 = color;
+		color2 = color;
+		color3 = color;
+		/* color based on cardial position */
+		/* procurar implementação hexadecimal 0xff112233 0x(alpha)(red)(green)(blue)*/
+		if (ray.was_hit_vert && !ray.is_ray_facing_right) // WEST
+		{
+			color1 = 70;
+			color2 = 130;
+			color3 = 180;
+		}
+		else if (ray.was_hit_vert && ray.is_ray_facing_right) // EAST
+		{
+			color1 = 0;
+			color2 = 128;
+			color3 = 0;
+		}
+		else if (!ray.was_hit_vert && !ray.is_ray_facing_down) // NORTH
+		{
+			color1 = 75;
+			color2 = 0;
+			color3 = 130;
+		}
+		else if (!ray.was_hit_vert && ray.is_ray_facing_down) // SOUTH
+		{
+			color1 = 255;
+			color2 = 140;
+			color3 = 0;
+		}
 		dist_proj_plane = (WINDOW_WIDTH / 2) * tan(FOV_ANGLE / 2);
 		wall_strip_height = (TILE_SIZE / correct_wall_dist) * dist_proj_plane;
 
-/*		//pixel superior
-		wall_top_pixel = (WINDOW_HEIGHT / 2) - (wall_strip_height / 2);
-		wall_top_pixel = wall_top_pixel < 0 ? 0 : wall_top_pixel;
-		//pixel inferior
-		wall_bottom_pixel = (WINDOW_HEIGHT / 2) + (wall_strip_height / 2);
-		wall_bottom_pixel = wall_top_pixel > WINDOW_HEIGHT ? WINDOW_HEIGHT : wall_top_pixel;
-		y = wall_top_pixel
-		while (y < 
-*/
 		//render
-		SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+		SDL_SetRenderDrawColor(renderer, color1, color2, color3, 255);
 		SDL_Rect map_tile_rect = {
 			strip_id * wall_strip_width,
 			(WINDOW_HEIGHT / 2) - (wall_strip_height / 2),
@@ -439,7 +469,7 @@ void	setup()
 	player.height = 1;
 	player.turn_direction = 0;
 	player.walk_direction = 0;
-	player.rotation_angle = PI / 2;
+	player.rotation_angle = 0.5 * PI;
 	player.walk_speed = 100;
 	player.turn_speed = 45 * (PI / 180);
 }
@@ -485,6 +515,48 @@ void	render_player()
 	);
 }
 
+void	render_celling()
+{
+	int	color1;
+	int	color2;
+	int	color3;
+	int	alpha;
+
+	color1 = 176;
+	color2 = 224;
+	color3 = 230;
+	alpha = 255;
+	SDL_SetRenderDrawColor(renderer, color1, color2, color3, alpha);
+	SDL_Rect rect = {
+		0,
+		0,
+		WINDOW_WIDTH,
+		WINDOW_HEIGHT / 2,
+	};
+	SDL_RenderFillRect(renderer, &rect);
+}
+
+void	render_floor()
+{
+	int	color1;
+	int	color2;
+	int	color3;
+	int	alpha;
+
+	color1 = 0;
+	color2 = 100;
+	color3 = 0;
+	alpha = 255;
+	SDL_SetRenderDrawColor(renderer, color1, color2, color3, alpha);
+	SDL_Rect rect = {
+		0,
+		WINDOW_HEIGHT / 2,
+		WINDOW_WIDTH,
+		WINDOW_HEIGHT,
+	};
+	SDL_RenderFillRect(renderer, &rect);
+}
+
 void	update()
 {
 	// "gastar" tempo até respeitar o frame rate
@@ -502,6 +574,10 @@ void	render()
 {
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 	SDL_RenderClear(renderer);
+	render_celling();
+//	SDL_RenderClear(renderer);
+	render_floor();
+//	SDL_RenderClear(renderer);
 	
 	render_3d_projected_walls();
 
